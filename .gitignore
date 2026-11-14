@@ -1,0 +1,18 @@
+# Output of the tools (moved duplicates, reports, manifest)
+dups/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Packaged copies
+*.zip
+
+# OS / editor clutter
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
