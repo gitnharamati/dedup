@@ -12,8 +12,9 @@ Windows; on Linux under WSL they are translated to /mnt/c/Users/me.
 """
 from __future__ import annotations
 
-import csv
 import errno
+import filecmp
+import fnmatch
 import hashlib
 import os
 import re
@@ -22,20 +23,19 @@ import stat
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
-from typing import Callable, Iterable, Optional
+from typing import Callable, Iterable, Optional, Sequence, Union
 
-APP_ROOT = Path(__file__).resolve().parent
-DUPS_DIR = APP_ROOT / "dups"
-MANIFEST = DUPS_DIR / "manifest.csv"
+from dedup_config import APP_ROOT, KEEP_STRATEGIES, to_local_path  # noqa: F401 (re-exported)
 
 PARTIAL_BYTES = 64 * 1024
 CHUNK_BYTES = 1024 * 1024
-KEEP_STRATEGIES = ("oldest", "newest", "shortest")
 
 ProgressFn = Optional[Callable[[str, int, int], None]]
 CancelFn = Optional[Callable[[], bool]]
+Roots = Union[Path, str, Sequence[Union[Path, str]]]
 
 _INVALID_NAME_CHARS = re.compile(r'[<>:"/\\|?*\x00-\x1f]')
+_FILE_ATTRIBUTE_HIDDEN = 0x2
 
 
 class Cancelled(Exception):
@@ -46,33 +46,40 @@ class Cancelled(Exception):
 
 def normalize_root(raw: str) -> Path:
     """Turn user input (Windows or Linux style) into an absolute, existing folder."""
-    s = (raw or "").strip().strip('"').strip("'")
-    if not s:
-        raise ValueError("No path given.")
-
-    win_drive = re.match(r"^([A-Za-z]):(?:[\\/](.*))?$", s)
-    if os.name == "nt":
-        if re.fullmatch(r"[A-Za-z]:", s):          # "D:" -> "D:\"
-            s += "\\"
-    elif win_drive:
-        drive, rest = win_drive.group(1).lower(), win_drive.group(2) or ""
-        wsl_mount = Path(f"/mnt/{drive}")
-        if not wsl_mount.is_dir():
-            raise ValueError(
-                f"'{raw}' is a Windows path, but this is running on Linux/macOS. "
-                "Use the folder's Linux path instead."
-            )
-        s = str(wsl_mount / rest.replace("\\", "/"))
-    elif s.startswith("\\\\"):
-        raise ValueError("Network paths like \\\\server\\share only work on Windows; "
-                         "mount the share and use its Linux path.")
-
-    p = Path(os.path.expandvars(os.path.expanduser(s))).resolve()
+    p = to_local_path(raw)
     if not p.exists():
         raise ValueError(f"Path does not exist: {p}")
     if not p.is_dir():
         raise ValueError(f"Not a folder: {p}")
     return p
+
+
+def _norm(p: Union[str, Path]) -> str:
+    return os.path.normcase(os.path.normpath(str(p)))
+
+
+def _is_within(path: Union[str, Path], folder: Union[str, Path]) -> bool:
+    p, f = _norm(path), _norm(folder)
+    return p == f or p.startswith(f.rstrip(os.sep) + os.sep)
+
+
+def collapse_roots(roots: Roots) -> list[Path]:
+    """Unique folders, dropping any that sit inside another one in the list."""
+    if isinstance(roots, (str, Path)):
+        roots = [roots]
+    unique = list(dict.fromkeys(Path(r) for r in roots))
+    unique.sort(key=lambda p: len(str(p)))
+    out: list[Path] = []
+    for r in unique:
+        if not any(_is_within(r, kept) for kept in out):
+            out.append(r)
+    return out
+
+
+def root_for(path: str, roots: Sequence[Union[str, Path]]) -> Path:
+    """The scanned folder that contains `path` (deepest match)."""
+    matches = [Path(r) for r in roots if _is_within(path, r)]
+    return max(matches, key=lambda r: len(str(r))) if matches else Path(path).parent
 
 
 def format_size(n: float) -> str:
@@ -84,6 +91,17 @@ def format_size(n: float) -> str:
 
 
 # --------------------------------------------------------------------------- scanning
+
+def scan_options(cfg) -> dict:
+    """Scan keyword arguments taken from a Config."""
+    return {
+        "min_size": cfg["min_size"],
+        "exclude_paths": [cfg.dups_dir],
+        "exclude_dirs": cfg["exclude_dirs"],
+        "exclude_files": cfg["exclude_files"],
+        "skip_hidden": cfg["skip_hidden"],
+    }
+
 
 def _hash_file(path: str, limit: Optional[int] = None) -> str:
     h = hashlib.sha256()
@@ -99,9 +117,45 @@ def _hash_file(path: str, limit: Optional[int] = None) -> str:
     return h.hexdigest()
 
 
-def _collect_files(root: Path, min_size: int, exclude: Iterable[Path],
+def _is_hidden(name: str, st: Optional[os.stat_result]) -> bool:
+    if name.startswith("."):
+        return True
+    return bool(st is not None and getattr(st, "st_file_attributes", 0) & _FILE_ATTRIBUTE_HIDDEN)
+
+
+def _matcher(patterns: Iterable[str]):
+    """Return (match_name, match_path) for a list of exclusion patterns.
+
+    A pattern with no slash matches a file/folder *name* anywhere (wildcards allowed,
+    e.g. ".Trash-*"); a pattern with a slash or drive is a full path to skip.
+    """
+    names, paths = [], []
+    for pat in patterns:
+        if re.search(r"[\\/]", pat) or re.match(r"^[A-Za-z]:", pat):
+            try:
+                paths.append(_norm(to_local_path(pat)))
+            except ValueError:
+                pass
+        else:
+            names.append(os.path.normcase(pat))
+
+    def match_name(name: str) -> bool:
+        n = os.path.normcase(name)
+        return any(fnmatch.fnmatchcase(n, pat) for pat in names)
+
+    def match_path(full: str) -> bool:
+        f = _norm(full)
+        return any(f == p or f.startswith(p.rstrip(os.sep) + os.sep) for p in paths)
+
+    return match_name, match_path
+
+
+def _collect_files(roots: list[Path], min_size: int, exclude_paths: Iterable[Path],
+                   exclude_dirs: Iterable[str], exclude_files: Iterable[str], skip_hidden: bool,
                    progress: ProgressFn, cancel: CancelFn, errors: list):
-    excluded = {os.path.normcase(str(Path(e).resolve())) for e in exclude}
+    excluded = {_norm(Path(e).resolve()) for e in exclude_paths}
+    dir_name_skip, dir_path_skip = _matcher(exclude_dirs)
+    file_name_skip, file_path_skip = _matcher(exclude_files)
     by_size: dict[int, list] = defaultdict(list)
     seen_inodes = set()
     count = 0
@@ -109,45 +163,68 @@ def _collect_files(root: Path, min_size: int, exclude: Iterable[Path],
     def on_error(err: OSError):
         errors.append(f"{getattr(err, 'filename', '?')}: {err.strerror or err}")
 
-    for dirpath, dirnames, filenames in os.walk(root, onerror=on_error):
-        if cancel and cancel():
-            raise Cancelled()
-        dirnames[:] = [d for d in dirnames
-                       if os.path.normcase(os.path.join(dirpath, d)) not in excluded]
-        for name in filenames:
-            full = os.path.join(dirpath, name)
+    def keep_dir(dirpath: str, d: str) -> bool:
+        full = os.path.join(dirpath, d)
+        if _norm(full) in excluded or dir_name_skip(d) or dir_path_skip(full):
+            return False
+        if skip_hidden:
             try:
-                st = os.lstat(full)
-            except OSError as e:
-                errors.append(f"{full}: {e.strerror}")
-                continue
-            if not stat.S_ISREG(st.st_mode) or st.st_size < min_size:
-                continue  # skips symlinks, devices, and files below min_size
-            if st.st_ino:  # hard links point at the same data: not a real duplicate
-                key = (st.st_dev, st.st_ino)
-                if key in seen_inodes:
+                if _is_hidden(d, os.lstat(full)):
+                    return False
+            except OSError:
+                return False
+        return True
+
+    for root in roots:
+        for dirpath, dirnames, filenames in os.walk(root, onerror=on_error):
+            if cancel and cancel():
+                raise Cancelled()
+            dirnames[:] = [d for d in dirnames if keep_dir(dirpath, d)]
+            for name in filenames:
+                if file_name_skip(name):
                     continue
-                seen_inodes.add(key)
-            by_size[st.st_size].append({"path": full, "size": st.st_size, "mtime": st.st_mtime})
-            count += 1
-            if progress and count % 250 == 0:
-                progress("Listing files", count, 0)
+                full = os.path.join(dirpath, name)
+                if file_path_skip(full):
+                    continue
+                try:
+                    st = os.lstat(full)
+                except OSError as e:
+                    errors.append(f"{full}: {e.strerror}")
+                    continue
+                if not stat.S_ISREG(st.st_mode) or st.st_size < min_size:
+                    continue  # skips symlinks, devices, and files below min_size
+                if skip_hidden and _is_hidden(name, st):
+                    continue
+                if st.st_ino:  # hard links point at the same data: not a real duplicate
+                    key = (st.st_dev, st.st_ino)
+                    if key in seen_inodes:
+                        continue
+                    seen_inodes.add(key)
+                by_size[st.st_size].append({"path": full, "size": st.st_size,
+                                            "mtime": st.st_mtime})
+                count += 1
+                if progress and count % 250 == 0:
+                    progress("Listing files", count, 0)
     if progress:
         progress("Listing files", count, 0)
     return by_size, count
 
 
-def find_duplicates(root: Path, min_size: int = 1, exclude: Iterable[Path] = (),
+def find_duplicates(roots: Roots, min_size: int = 1, exclude_paths: Iterable[Path] = (),
+                    exclude_dirs: Iterable[str] = (), exclude_files: Iterable[str] = (),
+                    skip_hidden: bool = False,
                     progress: ProgressFn = None, cancel: CancelFn = None) -> dict:
-    """Scan `root` recursively and return duplicate groups.
+    """Scan one or more folders recursively and return duplicate groups.
 
-    Returns {"root", "scanned_at", "files_scanned", "errors", "groups": [
+    Duplicates are matched across all the folders together.
+    Returns {"roots", "root", "scanned_at", "files_scanned", "errors", "groups": [
         {"id", "hash", "size", "files": [{"path", "size", "mtime"}, ...]}, ...]}
     Groups are sorted by reclaimable space, largest first.
     """
-    root = Path(root)
+    root_list = collapse_roots(roots)
     errors: list[str] = []
-    by_size, total_files = _collect_files(root, min_size, exclude, progress, cancel, errors)
+    by_size, total_files = _collect_files(root_list, min_size, exclude_paths, exclude_dirs,
+                                          exclude_files, skip_hidden, progress, cancel, errors)
 
     candidates = [g for g in by_size.values() if len(g) > 1]
     todo = sum(len(g) for g in candidates)
@@ -191,11 +268,24 @@ def find_duplicates(root: Path, min_size: int = 1, exclude: Iterable[Path] = (),
     for i, g in enumerate(groups, 1):
         g["id"] = i
     return {
-        "root": str(root),
+        "roots": [str(r) for r in root_list],
+        "root": "; ".join(str(r) for r in root_list),
         "scanned_at": datetime.now().isoformat(timespec="seconds"),
         "files_scanned": total_files,
         "errors": errors,
         "groups": groups,
+    }
+
+
+def summarize(result: dict) -> dict:
+    groups = result["groups"]
+    files = sum(len(g["files"]) for g in groups)
+    return {
+        "files_scanned": result["files_scanned"],
+        "sets": len(groups),
+        "duplicate_files": files - len(groups),
+        "reclaimable": sum(g["size"] * (len(g["files"]) - 1) for g in groups),
+        "errors": len(result.get("errors", [])),
     }
 
 
@@ -213,12 +303,19 @@ def pick_keeper(files: list, strategy: str = "oldest") -> int:
 
 # --------------------------------------------------------------------------- actions
 
-def dups_name(src: str, root: Path) -> str:
+def file_meta(path: str) -> dict:
+    """What history needs to undo an action later: size, modified time, permissions."""
+    st = os.stat(path)
+    return {"size": st.st_size, "mtime": st.st_mtime, "mode": stat.S_IMODE(st.st_mode)}
+
+
+def dups_name(src: str, roots: Sequence[Union[str, Path]]) -> str:
     """'photo.jpg' from C:\\Pics\\2020\\trip -> 'photo [Pics_2020_trip].jpg'."""
     src_p = Path(src)
     folder = src_p.parent
+    root = root_for(src, roots)
     try:
-        parts = folder.relative_to(Path(root).parent).parts
+        parts = folder.relative_to(root.parent).parts
     except ValueError:
         parts = folder.parts
     clean = [_INVALID_NAME_CHARS.sub("", p).strip(" .") for p in parts]
@@ -228,7 +325,7 @@ def dups_name(src: str, root: Path) -> str:
     return f"{src_p.stem} [{label}]{src_p.suffix}"
 
 
-def _unique_path(p: Path) -> Path:
+def unique_path(p: Path) -> Path:
     if not p.exists():
         return p
     n = 2
@@ -239,17 +336,12 @@ def _unique_path(p: Path) -> Path:
         n += 1
 
 
-def move_to_dups(src: str, root: Path) -> Path:
-    """Move a file into <app root>/dups and record it in dups/manifest.csv."""
-    DUPS_DIR.mkdir(parents=True, exist_ok=True)
-    dest = _unique_path(DUPS_DIR / dups_name(src, root))
+def move_to_dups(src: str, roots: Sequence[Union[str, Path]], dups_dir: Path) -> Path:
+    """Move a file into the dups folder, adding its source folder to the name."""
+    dups_dir = Path(dups_dir)
+    dups_dir.mkdir(parents=True, exist_ok=True)
+    dest = unique_path(dups_dir / dups_name(src, roots))
     shutil.move(src, str(dest))
-    new_file = not MANIFEST.exists()
-    with open(MANIFEST, "a", newline="", encoding="utf-8") as fh:
-        w = csv.writer(fh)
-        if new_file:
-            w.writerow(["moved_at", "original_path", "dups_path"])
-        w.writerow([datetime.now().isoformat(timespec="seconds"), src, str(dest)])
     return dest
 
 
@@ -259,9 +351,8 @@ def replace_with_hardlink(dup: str, keeper: str) -> None:
     The contents are compared byte for byte first. The link is created under a temporary
     name and then swapped in atomically, so if anything fails `dup` is left untouched.
     Both files must be on the same drive / filesystem, and that filesystem must support
-    hard links (NTFS, ext4, APFS, ... - not FAT32/exFAT).
+    hard links (NTFS, ext4, APFS, ZFS ... - not FAT32/exFAT).
     """
-    import filecmp
     k_st, d_st = os.stat(keeper), os.stat(dup)
     if (k_st.st_dev, k_st.st_ino) == (d_st.st_dev, d_st.st_ino):
         return                                   # already the same file
@@ -301,33 +392,47 @@ def delete_file(path: str) -> None:
         os.remove(path)
 
 
-def restore_from_manifest() -> tuple[int, list[str]]:
-    """Move every file listed in dups/manifest.csv back to where it came from."""
-    if not MANIFEST.exists():
-        return 0, []
-    with open(MANIFEST, newline="", encoding="utf-8") as fh:
-        rows = list(csv.DictReader(fh))
-    restored, problems, keep_rows = 0, [], []
-    for r in rows:
-        src, dst = r["original_path"], r["dups_path"]
-        if not os.path.exists(dst):
-            continue                            # already restored or removed by hand
-        if os.path.exists(src):
-            problems.append(f"Not restored (original location is occupied): {src}")
-            keep_rows.append(r)
-            continue
+# --------------------------------------------------------------------------- undo
+
+def restore_move(original: str, dest: str) -> None:
+    """Move a file from the dups folder back to where it came from."""
+    if not os.path.exists(dest):
+        raise FileNotFoundError(errno.ENOENT, "no longer in the dups folder", dest)
+    if os.path.lexists(original):
+        raise FileExistsError(errno.EEXIST, "original location is occupied", original)
+    os.makedirs(os.path.dirname(original), exist_ok=True)
+    shutil.move(dest, original)
+
+
+def separate_link(path: str, mtime: Optional[float] = None, mode: Optional[int] = None) -> bool:
+    """Turn a hard-linked path back into its own separate copy of the data.
+
+    Restores the modified time and permissions the file had before it was linked.
+    Returns False if the path was already a separate file (nothing to do).
+    """
+    st = os.stat(path)
+    if st.st_nlink < 2:
+        return False
+    p = Path(path)
+    tmp = p.with_name(f".{p.name}.dedup-{os.getpid()}.tmp")
+    try:
+        shutil.copyfile(path, tmp)
+        if mode is not None:
+            os.chmod(tmp, mode)
+        if mtime is not None:
+            os.utime(tmp, (mtime, mtime))
         try:
-            os.makedirs(os.path.dirname(src), exist_ok=True)
-            shutil.move(dst, src)
-            restored += 1
-        except OSError as e:
-            problems.append(f"Not restored ({e.strerror or e}): {src}")
-            keep_rows.append(r)
-    with open(MANIFEST, "w", newline="", encoding="utf-8") as fh:
-        w = csv.DictWriter(fh, fieldnames=["moved_at", "original_path", "dups_path"])
-        w.writeheader()
-        w.writerows(keep_rows)
-    return restored, problems
+            os.replace(tmp, path)
+        except PermissionError:
+            os.chmod(path, stat.S_IWRITE | stat.S_IREAD)   # read-only link on Windows
+            os.replace(tmp, path)
+    except BaseException:
+        try:
+            os.remove(tmp)
+        except OSError:
+            pass
+        raise
+    return True
 
 
 # --------------------------------------------------------------------------- report
@@ -336,15 +441,16 @@ def format_report(result: dict, status: Optional[dict] = None) -> str:
     """Plain-text list of all duplicate sets. `status` maps path -> (label, note)."""
     status = status or {}
     groups = result["groups"]
-    n_files = sum(len(g["files"]) for g in groups)
-    reclaim = sum(g["size"] * (len(g["files"]) - 1) for g in groups)
-    lines = [
-        "DUPLICATE FILES REPORT",
-        f"Folder scanned : {result['root']}",
+    s = summarize(result)
+    roots = result.get("roots") or [result["root"]]
+    lines = ["DUPLICATE FILES REPORT"]
+    lines.append(f"Folder scanned : {roots[0]}")
+    lines.extend(f"                 {r}" for r in roots[1:])
+    lines += [
         f"Scanned at     : {result['scanned_at']}",
         f"Files scanned  : {result['files_scanned']:,}",
-        f"Duplicate sets : {len(groups):,}  ({n_files:,} files, "
-        f"{n_files - len(groups):,} extra copies, {format_size(reclaim)} reclaimable)",
+        f"Duplicate sets : {s['sets']:,}  ({s['sets'] + s['duplicate_files']:,} files, "
+        f"{s['duplicate_files']:,} extra copies, {format_size(s['reclaimable'])} reclaimable)",
         "",
     ]
     width = max((len(lbl) for lbl, _ in status.values()), default=0)

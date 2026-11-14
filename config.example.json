@@ -1,0 +1,29 @@
+{
+  "_comment": "Copy this file to config.json and change what you need. Settings you leave out use these defaults. Keys starting with _ are ignored. See README.md.",
+  "dups_dir": "dups",
+  "history_file": "history.db",
+  "keep": "oldest",
+  "min_size": 1,
+  "cli_action": "move",
+  "web_action": "delete",
+  "exclude_dirs": [
+    ".git",
+    ".svn",
+    ".hg",
+    ".zfs",
+    "@eaDir",
+    "$RECYCLE.BIN",
+    "System Volume Information",
+    ".Trash-*"
+  ],
+  "exclude_files": [
+    "Thumbs.db",
+    "desktop.ini",
+    ".DS_Store"
+  ],
+  "skip_hidden": false,
+  "write_report": true,
+  "web_host": "127.0.0.1",
+  "web_port": 8765,
+  "open_browser": true
+}

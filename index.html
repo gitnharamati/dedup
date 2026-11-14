@@ -25,22 +25,26 @@
   }
   * { box-sizing: border-box; }
   [hidden] { display: none !important; }
-  body.mode-link li.del .p { text-decoration: none; }
-  body.mode-link li.del .pill { color: var(--accent); background: var(--accent-soft);
-                                border-color: color-mix(in srgb, var(--accent) 35%, transparent); }
   body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 var(--sans); padding-bottom: 88px; }
-  header.top { padding: 22px 24px 4px; max-width: 1180px; margin: 0 auto; }
+  header.top { padding: 22px 24px 0; max-width: 1180px; margin: 0 auto; display: flex; align-items: flex-end;
+               justify-content: space-between; gap: 16px; flex-wrap: wrap; }
   header.top h1 { margin: 0; font-size: 22px; letter-spacing: -0.01em; }
   header.top p { margin: 4px 0 0; color: var(--muted); }
+  nav.tabs { display: flex; gap: 4px; }
+  nav.tabs button { border: none; background: none; padding: 8px 14px; border-radius: 7px; color: var(--muted); font-weight: 600; }
+  nav.tabs button.on { background: var(--accent-soft); color: var(--accent); }
+  nav.tabs .count { font-weight: 500; font-size: 12px; margin-left: 4px; opacity: .8; }
   main { max-width: 1180px; margin: 0 auto; padding: 16px 24px; }
   .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
   label.field { display: block; font-weight: 600; margin-bottom: 6px; }
   .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-  input[type=text], select {
+  input[type=text], input[type=number], select, textarea {
     font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--border);
     border-radius: 7px; padding: 8px 10px;
   }
-  #path { flex: 1 1 360px; font-family: var(--mono); font-size: 14px; }
+  .pathRow { display: flex; gap: 8px; margin-bottom: 8px; }
+  .pathRow input { flex: 1 1 auto; font-family: var(--mono); font-size: 14px; min-width: 0; }
+  .pathRow .rm { padding: 4px 10px; color: var(--muted); }
   button {
     font: inherit; color: var(--text); background: var(--panel); border: 1px solid var(--border);
     border-radius: 7px; padding: 7px 12px; cursor: pointer;
@@ -50,7 +54,7 @@
   button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
   button.danger { background: var(--del); color: #fff; border-color: var(--del); font-weight: 600; }
   button.link { border: none; background: none; color: var(--accent); padding: 2px 4px; font-size: 13px; }
-  .progress { margin-top: 12px; display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 14px; }
+  .progress { margin-top: 4px; display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 14px; }
   .bar { flex: 0 0 240px; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; position: relative; }
   .bar > div { height: 100%; background: var(--accent); width: 0; transition: width .2s; }
   .bar.indet > div { width: 30%; position: absolute; animation: slide 1.1s infinite ease-in-out; }
@@ -60,6 +64,8 @@
   .msg.ok { background: var(--keep-bg); color: var(--keep); }
   .msg.warn { background: var(--warn-bg); color: var(--warn); }
   .msg details { margin-top: 6px; } .msg pre { white-space: pre-wrap; margin: 6px 0 0; font: 12px var(--mono); }
+  .hint { color: var(--muted); font-size: 13px; }
+  code { font-family: var(--mono); font-size: .92em; }
 
   .summary { margin: 18px 0 10px; display: flex; gap: 18px; flex-wrap: wrap; align-items: baseline; }
   .summary .big { font-size: 20px; font-weight: 650; }
@@ -83,11 +89,17 @@
             padding: 7px 14px; border-top: 1px solid var(--border); cursor: pointer; }
   .grp li:first-child { border-top: none; }
   .grp li:hover { background: var(--bg); }
-  .pill { font-size: 12px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; text-align: center;
-          border-radius: 999px; padding: 3px 0; border: 1px solid transparent; }
-  li.keep .pill { color: var(--keep); background: var(--keep-bg); border-color: color-mix(in srgb, var(--keep) 35%, transparent); }
-  li.del .pill { color: var(--del); background: var(--del-bg); border-color: color-mix(in srgb, var(--del) 35%, transparent); }
+  .pill { display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase;
+          text-align: center; border-radius: 999px; padding: 3px 8px; border: 1px solid transparent; white-space: nowrap; }
+  .pill.keep, li.keep .pill { color: var(--keep); background: var(--keep-bg); border-color: color-mix(in srgb, var(--keep) 35%, transparent); }
+  .pill.del, li.del .pill { color: var(--del); background: var(--del-bg); border-color: color-mix(in srgb, var(--del) 35%, transparent); }
+  .pill.info { color: var(--accent); background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 35%, transparent); }
+  .pill.warn { color: var(--warn); background: var(--warn-bg); border-color: color-mix(in srgb, var(--warn) 35%, transparent); }
+  .pill.plain { color: var(--muted); border-color: var(--border); }
   li.del .p { text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--del) 60%, transparent); }
+  body.mode-link li.del .p { text-decoration: none; }
+  body.mode-link li.del .pill { color: var(--accent); background: var(--accent-soft);
+                                border-color: color-mix(in srgb, var(--accent) 35%, transparent); }
   .p { font: 13px var(--mono); overflow-wrap: anywhere; min-width: 0; }
   .p .dir { color: var(--muted); } .p .name { font-weight: 600; }
   .date { color: var(--muted); font-size: 13px; white-space: nowrap; font-variant-numeric: tabular-nums; }
@@ -96,12 +108,43 @@
   #textView pre { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 14px;
                   font: 12.5px/1.5 var(--mono); white-space: pre; overflow: auto; max-height: 70vh; margin: 8px 0 0; }
 
+  /* history */
+  .htable { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .htable th { text-align: left; color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase;
+               letter-spacing: .04em; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+  .htable td { padding: 9px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .htable tr.run { cursor: pointer; }
+  .htable tr.run:hover td { background: var(--bg); }
+  .htable tr.run.sel td { background: color-mix(in srgb, var(--accent-soft) 70%, transparent); }
+  .htable td.num, .htable td.when { font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--muted); }
+  .htable td.where { font: 13px var(--mono); overflow-wrap: anywhere; }
+  .htable td.where .note { font-family: var(--sans); color: var(--muted); font-size: 12px; display: block; margin-top: 2px; }
+  .htable .chk { width: 34px; }
+  .htable input[type=checkbox] { width: 16px; height: 16px; }
+  .htable tr.detail td { background: var(--bg); padding: 10px 14px 14px 44px; }
+  .detail ul { list-style: none; margin: 0; padding: 0; max-height: 340px; overflow: auto; }
+  .detail li { display: grid; grid-template-columns: 100px 1fr; gap: 10px; padding: 4px 0; align-items: baseline; }
+  .detail li .p small { display: block; color: var(--muted); }
+  .twist { color: var(--muted); font-size: 12px; margin-left: 4px; }
+  .empty { color: var(--muted); padding: 24px 4px; text-align: center; }
+  .stickybar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+  .stickybar .grow { margin-right: auto; color: var(--muted); font-size: 14px; }
+
+  /* settings */
+  .settings { display: grid; grid-template-columns: 220px 1fr; gap: 16px 20px; align-items: start; }
+  .settings > label { font-weight: 600; padding-top: 8px; }
+  .settings .ctl input[type=text], .settings .ctl textarea { width: 100%; font-family: var(--mono); font-size: 13.5px; }
+  .settings textarea { min-height: 120px; resize: vertical; }
+  .settings .hint { margin-top: 4px; }
+  .settings .chkrow { display: flex; gap: 8px; align-items: center; padding-top: 8px; }
+  .settings hr { grid-column: 1 / -1; border: none; border-top: 1px solid var(--border); margin: 0; }
+  .settings .meta { grid-column: 1 / -1; }
+
   footer.actions { position: fixed; left: 0; right: 0; bottom: 0; background: var(--panel); border-top: 1px solid var(--border);
                    padding: 12px 24px; display: flex; gap: 16px; align-items: center; justify-content: flex-end; flex-wrap: wrap;
                    box-shadow: 0 -4px 16px rgba(0,0,0,.06); }
   footer.actions #selInfo { margin-right: auto; font-weight: 600; }
   footer.actions label { font-size: 14px; color: var(--muted); display: flex; gap: 6px; align-items: center; }
-  code { font-family: var(--mono); font-size: .92em; }
 
   dialog { border: 1px solid var(--border); border-radius: 12px; background: var(--panel); color: var(--text);
            padding: 20px; width: min(640px, calc(100vw - 32px)); }
@@ -116,67 +159,188 @@
     .grp li .date, .grp li .only { grid-column: 2; }
     .bar { flex-basis: 120px; }
     #filter { width: 100%; }
+    .settings { grid-template-columns: 1fr; gap: 6px; }
+    .settings > label { padding-top: 10px; }
+    .htable .hide-sm { display: none; }
+    .htable thead th:not(.chk) { display: none; }
+    .htable tr.run { display: grid; grid-template-columns: 34px auto 1fr; align-items: center;
+                     border-bottom: 1px solid var(--border); padding: 6px 0; }
+    .htable tr.run td { border: none; padding: 3px 6px; background: none !important; }
+    .htable tr.run.sel { background: color-mix(in srgb, var(--accent-soft) 70%, transparent); }
+    .htable tr.run td.chk { grid-row: 1 / span 3; align-self: start; padding-top: 6px; }
+    .htable tr.run td.num::before { content: '#'; }
+    .htable tr.run td.where, .htable tr.run td.res { grid-column: 2 / -1; }
+    .htable tr.detail { display: block; }
+    .htable tr.detail td { display: block; padding-left: 14px; }
+    .detail li { grid-template-columns: 1fr; gap: 2px; }
   }
 </style>
 </head>
 <body>
 <header class="top">
-  <h1>Duplicate Finder</h1>
-  <p>Finds files with identical content. Nothing is changed on disk until you confirm.</p>
+  <div>
+    <h1>Duplicate Finder</h1>
+    <p>Finds files with identical content. Nothing is changed on disk until you confirm.</p>
+  </div>
+  <nav class="tabs" role="tablist">
+    <button data-tab="scan" class="on" role="tab">Scan</button>
+    <button data-tab="history" role="tab">History<span class="count" id="histCount"></span></button>
+    <button data-tab="settings" role="tab">Settings</button>
+  </nav>
 </header>
 
 <main>
-  <section class="panel">
-    <form id="scanForm" autocomplete="off">
-      <label class="field" for="path">Folder to scan</label>
-      <div class="row">
-        <input type="text" id="path" spellcheck="false" required
-               placeholder="C:\Users\you\Pictures   or   /home/you/Pictures">
-        <select id="minSize" title="Ignore small files">
-          <option value="1">All files</option>
-          <option value="1024">1 KB and up</option>
-          <option value="102400">100 KB and up</option>
-          <option value="1048576">1 MB and up</option>
-        </select>
-        <button class="primary" id="scanBtn" type="submit">Scan</button>
-        <button id="cancelBtn" type="button" hidden>Cancel</button>
-      </div>
-    </form>
-    <div class="progress" id="progress" hidden>
-      <div class="bar" id="bar"><div id="barFill"></div></div>
-      <span id="progressText"></span>
-    </div>
-    <div id="message" hidden></div>
-  </section>
+  <!-- ======================================================== SCAN -->
+  <div id="tab-scan">
+    <section class="panel">
+      <form id="scanForm" autocomplete="off">
+        <label class="field" for="path0">Folder(s) to scan</label>
+        <div id="pathList"></div>
+        <div class="row">
+          <button type="button" id="addPath">+ Add folder</button>
+          <select id="minSize" title="Ignore small files">
+            <option value="1">All files</option>
+            <option value="1024">1 KB and up</option>
+            <option value="102400">100 KB and up</option>
+            <option value="1048576">1 MB and up</option>
+          </select>
+          <button class="primary" id="scanBtn" type="submit">Scan</button>
+          <button id="cancelBtn" type="button" hidden>Cancel</button>
+          <div class="progress" id="progress" hidden>
+            <div class="bar" id="bar"><div id="barFill"></div></div>
+            <span id="progressText"></span>
+          </div>
+        </div>
+      </form>
+      <div id="message" hidden></div>
+    </section>
 
-  <section id="results" hidden>
-    <div class="summary" id="summary"></div>
-    <div class="toolbar">
-      <div class="row">
-        <span class="lbl">Keep one copy per set:</span>
-        <button data-keep="oldest">Oldest</button>
-        <button data-keep="newest">Newest</button>
-        <button data-keep="shortest">Shortest path</button>
-        <button data-keep="all">Keep all</button>
-      </div>
-      <div class="row">
-        <input type="text" id="filter" placeholder="Filter by path…" spellcheck="false">
-        <div class="seg" role="tablist">
-          <button data-view="groups" class="on">Sets</button>
-          <button data-view="text">Text</button>
+    <section id="results" hidden>
+      <div class="summary" id="summary"></div>
+      <div class="toolbar">
+        <div class="row">
+          <span class="lbl">Keep one copy per set:</span>
+          <button data-keep="oldest">Oldest</button>
+          <button data-keep="newest">Newest</button>
+          <button data-keep="shortest">Shortest path</button>
+          <button data-keep="all">Keep all</button>
+        </div>
+        <div class="row">
+          <input type="text" id="filter" placeholder="Filter by path…" spellcheck="false">
+          <div class="seg">
+            <button data-view="groups" class="on">Sets</button>
+            <button data-view="text">Text</button>
+          </div>
         </div>
       </div>
-    </div>
-    <div id="groupsView"></div>
-    <div id="textView" hidden>
-      <div class="row">
-        <button id="copyText">Copy</button>
-        <button id="dlText">Download .txt</button>
-        <span class="lbl" style="color:var(--muted);font-size:13px">Reflects your current keep / delete choices.</span>
+      <div id="groupsView"></div>
+      <div id="textView" hidden>
+        <div class="row">
+          <button id="copyText">Copy</button>
+          <button id="dlText">Download .txt</button>
+          <span class="hint">Reflects your current keep / delete choices.</span>
+        </div>
+        <pre id="reportText"></pre>
       </div>
-      <pre id="reportText"></pre>
-    </div>
-  </section>
+    </section>
+  </div>
+
+  <!-- ======================================================== HISTORY -->
+  <div id="tab-history" hidden>
+    <section class="panel">
+      <div class="stickybar">
+        <span class="grow" id="histSel">Select entries to recheck or undo them.</span>
+        <button id="hRecheck" disabled title="Scan the folders of the selected entries again, together">Recheck for duplicates</button>
+        <button id="hRestore" disabled title="Move files back from the dups folder and turn hard links back into separate files">Restore</button>
+        <button id="hForget" disabled title="Remove the selected entries from history (files are not touched)">Remove from history</button>
+      </div>
+      <div id="histMsg" hidden></div>
+      <table class="htable">
+        <thead><tr>
+          <th class="chk"><input type="checkbox" id="hAll" title="Select all"></th>
+          <th>#</th><th class="hide-sm">When</th><th class="hide-sm">From</th><th>Action</th>
+          <th>Folder(s)</th><th>Result</th>
+        </tr></thead>
+        <tbody id="histBody"></tbody>
+      </table>
+      <p class="hint" id="histPath"></p>
+    </section>
+  </div>
+
+  <!-- ======================================================== SETTINGS -->
+  <div id="tab-settings" hidden>
+    <section class="panel">
+      <form id="setForm" class="settings" autocomplete="off">
+        <label for="s_dups_dir">Dups folder</label>
+        <div class="ctl">
+          <input type="text" id="s_dups_dir" spellcheck="false">
+          <div class="hint">Where moved duplicates and reports go. Created if it doesn't exist.
+            A relative path is relative to the config file's folder. Currently: <code id="s_dups_resolved"></code></div>
+        </div>
+
+        <label for="s_keep">Copy to keep</label>
+        <div class="ctl">
+          <select id="s_keep">
+            <option value="oldest">Oldest (earliest modified)</option>
+            <option value="newest">Newest</option>
+            <option value="shortest">Shortest path</option>
+          </select>
+          <div class="hint">Which copy in each set is pre-selected to keep.</div>
+        </div>
+
+        <label for="s_web_action">Web page action</label>
+        <div class="ctl">
+          <select id="s_web_action">
+            <option value="delete">Delete permanently</option>
+            <option value="move">Move to dups folder</option>
+            <option value="link">Replace with hard link</option>
+          </select>
+        </div>
+
+        <label for="s_cli_action">Command-line action</label>
+        <div class="ctl">
+          <select id="s_cli_action">
+            <option value="move">Move to dups folder</option>
+            <option value="link">Replace with hard link</option>
+          </select>
+          <div class="hint">What <code>dedup.py</code> does when you don't pass <code>--action</code> or <code>--link</code>.</div>
+        </div>
+
+        <label for="s_min_size">Minimum file size</label>
+        <div class="ctl">
+          <div class="row"><input type="number" id="s_min_size" min="0" step="1" style="width:160px"> <span class="hint">bytes (1 = skip only empty files)</span></div>
+        </div>
+
+        <label for="s_exclude_dirs">Skip folders</label>
+        <div class="ctl">
+          <textarea id="s_exclude_dirs" spellcheck="false"></textarea>
+          <div class="hint">One per line. A name (wildcards allowed, e.g. <code>.Trash-*</code>) skips that folder anywhere;
+            a full path skips just that folder.</div>
+        </div>
+
+        <label for="s_exclude_files">Skip files</label>
+        <div class="ctl">
+          <textarea id="s_exclude_files" spellcheck="false" style="min-height:80px"></textarea>
+          <div class="hint">One per line, same rules, e.g. <code>*.tmp</code>.</div>
+        </div>
+
+        <label>Options</label>
+        <div class="ctl">
+          <div class="chkrow"><input type="checkbox" id="s_skip_hidden"><label for="s_skip_hidden">Skip hidden files and folders</label></div>
+          <div class="chkrow"><input type="checkbox" id="s_write_report"><label for="s_write_report">Command line: save a text report in the dups folder on each run</label></div>
+        </div>
+
+        <hr>
+        <div class="meta row">
+          <button class="primary" type="submit" id="setSave">Save settings</button>
+          <button type="button" id="setRevert">Undo changes</button>
+          <button type="button" id="setDefaults">Fill in defaults</button>
+          <span class="hint" id="setPath"></span>
+        </div>
+        <div class="meta"><div id="setMsg" hidden></div></div>
+      </form>
+    </section>
+  </div>
 </main>
 
 <footer class="actions" id="actionBar" hidden>
@@ -204,21 +368,26 @@
 <script>window.DEDUP = __CONFIG__;</script>
 <script>
 (() => {
-  const CFG = window.DEDUP;
+  const BOOT = window.DEDUP;
   const $ = (id) => document.getElementById(id);
   const PAGE = 150;
 
+  let settings = null;        // /api/config payload
   let data = null;            // scan result from the server
-  let marked = new Set();     // paths marked for deletion
+  let marked = new Set();     // paths marked for the chosen action
   let byId = new Map();
   let shown = PAGE;
   let view = 'groups';
   let pollTimer = null;
+  let runs = [];              // history entries
+  let hSel = new Set();       // selected history ids
+  let hOpen = new Set();      // expanded history ids
+  const hDetail = new Map();  // id -> run details
 
   // ------------------------------------------------------------ helpers
-  const esc = (s) => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   function fmtSize(n) {
-    const u = ['B','KB','MB','GB','TB']; let i = 0;
+    const u = ['B','KB','MB','GB','TB']; let i = 0; n = n || 0;
     while (n >= 1024 && i < u.length - 1) { n /= 1024; i++; }
     return i === 0 ? `${n} B` : `${n.toFixed(1)} ${u[i]}`;
   }
@@ -226,48 +395,111 @@
     const d = new Date(t * 1000), p = (x) => String(x).padStart(2, '0');
     return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
   }
+  const fmtIso = (s) => (s || '').replace('T', ' ').slice(0, 16);
+  const plural = (n, w) => `${n.toLocaleString()} ${w}${n === 1 ? '' : 's'}`;
   function splitPath(p) {
     const i = Math.max(p.lastIndexOf('/'), p.lastIndexOf('\\'));
     return { dir: p.slice(0, i + 1), name: p.slice(i + 1) };
   }
   async function api(method, url, body) {
     const r = await fetch(url, {
-      method, headers: { 'X-Token': CFG.token, 'Content-Type': 'application/json' },
+      method, headers: { 'X-Token': BOOT.token, 'Content-Type': 'application/json' },
       body: body ? JSON.stringify(body) : undefined,
     });
     const j = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(j.error || `${r.status} ${r.statusText}`);
     return j;
   }
-  function message(kind, html) {
-    const m = $('message');
+  function note(el, kind, html) {
+    const m = $(el);
     if (!kind) { m.hidden = true; return; }
     m.className = `msg ${kind}`; m.innerHTML = html; m.hidden = false;
   }
-  const groupFullyMarked = (g) => g.files.every(f => marked.has(f.path));
-  const MODES = {
-    delete: { pill: 'Delete', tag: '[DELETE]', button: 'Delete selected',          ok: 'Delete files', done: 'Deleted' },
-    move:   { pill: 'Move',   tag: '[MOVE]  ', button: 'Move selected to dups',    ok: 'Move files',   done: 'Moved' },
-    link:   { pill: 'Link',   tag: '[LINK]  ', button: 'Replace with hard links',  ok: 'Replace with links', done: 'Replaced with hard links:' },
-  };
-  const mode = () => $('actionMode').value;
+  const message = (kind, html) => note('message', kind, html);
+
+  function confirmBox({ title, body, list = [], ok, danger = true }) {
+    return new Promise((resolve) => {
+      const dlg = $('confirm');
+      $('cTitle').textContent = title;
+      $('cBody').innerHTML = body;
+      $('cList').innerHTML = list.slice(0, 12).map(p => `<li>${esc(p)}</li>`).join('') +
+        (list.length > 12 ? `<li>…and ${(list.length - 12).toLocaleString()} more</li>` : '');
+      $('cList').hidden = !list.length;
+      $('cOk').textContent = ok;
+      $('cOk').className = danger ? 'danger' : 'primary';
+      const done = (v) => { dlg.close(); $('cOk').onclick = $('cCancel').onclick = null; resolve(v); };
+      $('cOk').onclick = () => done(true);
+      $('cCancel').onclick = () => done(false);
+      dlg.onclose = () => resolve(false);
+      dlg.showModal();
+    });
+  }
+
+  // ------------------------------------------------------------ tabs
+  function showTab(name) {
+    document.querySelectorAll('[data-tab]').forEach(b => b.classList.toggle('on', b.dataset.tab === name));
+    for (const t of ['scan', 'history', 'settings']) $(`tab-${t}`).hidden = t !== name;
+    $('actionBar').hidden = name !== 'scan' || !data || !data.groups || !data.groups.length;
+    if (name === 'history') loadHistory();
+    if (name === 'settings') fillSettings();
+    try { localStorage.setItem('dedup.tab', name); } catch (_) {}
+  }
+  document.querySelectorAll('[data-tab]').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
+
+  // ------------------------------------------------------------ folder inputs
+  function addPathRow(value = '') {
+    const list = $('pathList');
+    const i = list.children.length;
+    const row = document.createElement('div');
+    row.className = 'pathRow';
+    row.innerHTML = `<input type="text" id="path${i}" spellcheck="false" ${i === 0 ? 'required' : ''}
+        placeholder="${i === 0 ? 'C:\\Users\\you\\Pictures   or   /home/you/Pictures' : 'Another folder'}">
+      ${i ? '<button type="button" class="rm" title="Remove this folder">✕</button>' : ''}`;
+    row.querySelector('input').value = value;
+    const rm = row.querySelector('.rm');
+    if (rm) rm.onclick = () => row.remove();
+    list.appendChild(row);
+    return row.querySelector('input');
+  }
+  function setPaths(paths) {
+    $('pathList').innerHTML = '';
+    (paths.length ? paths : ['']).forEach(p => addPathRow(p));
+  }
+  const getPaths = () => [...$('pathList').querySelectorAll('input')].map(i => i.value.trim()).filter(Boolean);
+  $('addPath').addEventListener('click', () => addPathRow().focus());
+
+  function setMinSize(v) {
+    const sel = $('minSize');
+    if (![...sel.options].some(o => +o.value === v)) {
+      const o = document.createElement('option');
+      o.value = v; o.textContent = v === 0 ? 'All files, including empty' : `${fmtSize(v)} and up`;
+      sel.appendChild(o);
+    }
+    sel.value = String(v);
+  }
 
   // ------------------------------------------------------------ scanning
   $('scanForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     message(null);
     try {
-      const r = await api('POST', '/api/scan', { path: $('path').value, min_size: +$('minSize').value });
-      $('path').value = r.root;
-      try { localStorage.setItem('dedup.path', r.root); } catch (_) {}
-      setScanning(true);
-      poll();
+      const r = await api('POST', '/api/scan', { paths: getPaths(), min_size: +$('minSize').value });
+      afterScanStarted(r.roots);
     } catch (err) { message('err', esc(err.message)); }
   });
   $('cancelBtn').addEventListener('click', () => api('POST', '/api/cancel').catch(() => {}));
 
+  function afterScanStarted(roots) {
+    setPaths(roots);
+    try { localStorage.setItem('dedup.paths', JSON.stringify(roots)); } catch (_) {}
+    setScanning(true);
+    poll();
+  }
+
   function setScanning(on) {
-    $('scanBtn').disabled = on; $('path').disabled = on; $('minSize').disabled = on;
+    $('scanBtn').disabled = on; $('minSize').disabled = on; $('addPath').disabled = on;
+    $('pathList').querySelectorAll('input, button').forEach(x => x.disabled = on);
+    $('hRecheck').disabled = on || !hSel.size;
     $('cancelBtn').hidden = !on; $('progress').hidden = !on;
     if (on) { $('results').hidden = true; $('actionBar').hidden = true; }
   }
@@ -292,14 +524,14 @@
     }
     setScanning(false);
     if (s.state === 'error') { message('err', esc(s.error)); return; }
-    if (s.state === 'done') { await loadResult(); return; }
+    if (s.state === 'done') { await loadResult(); refreshHistCount(); return; }
     if (s.phase === 'Cancelled') message('warn', 'Scan cancelled.');
   }
 
   async function loadResult() {
     data = await api('GET', '/api/result');
     if (!data.groups) return;
-    autoSelect('oldest');
+    autoSelect(settings ? settings.values.keep : 'oldest');
     shown = PAGE;
     if (data.errors && data.errors.length) {
       message('warn', `${data.errors.length} item(s) could not be read and were skipped.
@@ -309,6 +541,14 @@
   }
 
   // ------------------------------------------------------------ selection
+  const MODES = {
+    delete: { pill: 'Delete', tag: '[DELETE]', button: 'Delete selected',         ok: 'Delete files',       done: 'Deleted' },
+    move:   { pill: 'Move',   tag: '[MOVE]  ', button: 'Move selected to dups',   ok: 'Move files',         done: 'Moved' },
+    link:   { pill: 'Link',   tag: '[LINK]  ', button: 'Replace with hard links', ok: 'Replace with links', done: 'Replaced with hard links:' },
+  };
+  const mode = () => $('actionMode').value;
+  const groupFullyMarked = (g) => g.files.every(f => marked.has(f.path));
+
   function autoSelect(strategy) {
     marked = new Set();
     if (strategy === 'all') return;
@@ -317,7 +557,7 @@
         oldest:   f => [f.mtime, f.path.length],
         newest:   f => [-f.mtime, f.path.length],
         shortest: f => [f.path.length, f.mtime],
-      }[strategy];
+      }[strategy] || (f => [f.mtime, f.path.length]);
       let best = g.files[0];
       for (const f of g.files) {
         const a = keyOf(f), b = keyOf(best);
@@ -373,7 +613,7 @@
     const groups = visibleGroups();
     let html = groups.slice(0, shown).map(groupHTML).join('');
     if (groups.length > shown) html += `<button class="more" id="moreBtn">Show more (${(groups.length - shown).toLocaleString()} left)</button>`;
-    if (!groups.length) html = `<p style="color:var(--muted)">${data.groups.length ? 'No sets match the filter.' : 'No duplicates found.'}</p>`;
+    if (!groups.length) html = `<p class="empty">${data.groups.length ? 'No sets match the filter.' : 'No duplicates found.'}</p>`;
     $('groupsView').innerHTML = html;
   }
 
@@ -382,15 +622,14 @@
     const files = g.reduce((n, x) => n + x.files.length, 0);
     const reclaim = g.reduce((n, x) => n + x.size * (x.files.length - 1), 0);
     const sel = selectionStats();
-    const out = [
-      'DUPLICATE FILES REPORT',
-      `Folder scanned : ${data.root}`,
+    const roots = data.roots || [data.root];
+    const out = ['DUPLICATE FILES REPORT', `Folder scanned : ${roots[0]}`,
+      ...roots.slice(1).map(r => `                 ${r}`),
       `Scanned at     : ${data.scanned_at}`,
       `Files scanned  : ${data.files_scanned.toLocaleString()}`,
       `Duplicate sets : ${g.length.toLocaleString()}  (${files.toLocaleString()} files, ${fmtSize(reclaim)} reclaimable)`,
       `Marked ${MODES[mode()].pill.toLowerCase().padEnd(8)}: ${sel.count.toLocaleString()} files (${fmtSize(sel.bytes)})`,
-      '',
-    ];
+      ''];
     for (const x of g) {
       out.push(`=== Set ${x.id}: ${x.files.length} copies x ${fmtSize(x.size)}  (sha256 ${x.hash.slice(0, 16)}) ===`);
       for (const f of x.files) {
@@ -411,12 +650,13 @@
   }
 
   function updateSelection() {
+    document.body.classList.toggle('mode-link', mode() === 'link');
+    if (!data || !data.groups) return;
     const s = selectionStats();
     $('selInfo').textContent = s.count
       ? `${s.count.toLocaleString()} file(s) marked · ${fmtSize(s.bytes)}`
       : 'No files marked';
     $('applyBtn').textContent = MODES[mode()].button;
-    document.body.classList.toggle('mode-link', mode() === 'link');
     $('applyBtn').disabled = !s.count || s.bad > 0;
     $('applyBtn').title = s.bad ? `${s.bad} set(s) have every copy marked. Keep at least one in each.` : '';
     if (view === 'text') $('reportText').textContent = buildText();
@@ -427,13 +667,14 @@
     const g = data.groups;
     const files = g.reduce((n, x) => n + x.files.length, 0);
     const reclaim = g.reduce((n, x) => n + x.size * (x.files.length - 1), 0);
+    const where = esc((data.roots || [data.root]).join(' · '));
     $('summary').innerHTML = g.length
-      ? `<span class="big">${g.length.toLocaleString()} duplicate sets</span>
+      ? `<span class="big">${plural(g.length, 'duplicate set')}</span>
          <span>${files.toLocaleString()} files · ${fmtSize(reclaim)} reclaimable</span>
-         <span class="muted">in ${esc(data.root)} · ${data.files_scanned.toLocaleString()} files scanned</span>`
-      : `<span class="big">No duplicates</span><span class="muted">${data.files_scanned.toLocaleString()} files scanned in ${esc(data.root)}</span>`;
+         <span class="muted">in ${where} · ${data.files_scanned.toLocaleString()} files scanned</span>`
+      : `<span class="big">No duplicates</span><span class="muted">${data.files_scanned.toLocaleString()} files scanned in ${where}</span>`;
     $('results').hidden = false;
-    $('actionBar').hidden = !g.length;
+    $('actionBar').hidden = $('tab-scan').hidden || !g.length;
     renderGroups();
     updateSelection();
   }
@@ -457,62 +698,323 @@
     a.download = 'duplicates.txt'; a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   });
-  $('actionMode').addEventListener('change', () => {
-    try { localStorage.setItem('dedup.mode', mode()); } catch (_) {}
-    if (data) { renderGroups(); updateSelection(); }
-  });
+  $('actionMode').addEventListener('change', () => { if (data) renderGroups(); updateSelection(); });
 
   // ------------------------------------------------------------ apply
-  $('applyBtn').addEventListener('click', () => {
+  $('applyBtn').addEventListener('click', async () => {
     const s = selectionStats(), m = mode();
     const paths = [...marked], n = s.count.toLocaleString();
-    $('cTitle').textContent = {
-      delete: `Permanently delete ${n} file(s)?`,
-      move:   `Move ${n} file(s) to the dups folder?`,
-      link:   `Replace ${n} file(s) with hard links?`,
-    }[m];
-    $('cBody').innerHTML = {
-      delete: `This frees ${fmtSize(s.bytes)}. Deleted files do <b>not</b> go to the Recycle Bin / Trash and cannot be recovered.`,
-      move:   `They'll be moved to <code>${esc(CFG.dupsDir)}</code> with their source folder added to the name (${fmtSize(s.bytes)}). Run <code>python dedup.py --restore</code> to undo.`,
-      link:   `Each file stays at its path but becomes a hard link to a kept copy in its set, freeing ${fmtSize(s.bytes)}.
-               Afterwards the paths share one copy of the data: <b>editing any of them changes all of them</b>.
-               Linked files take the kept copy's modified date. Files must be on the same drive as the kept copy
-               (NTFS, ext4, APFS… — not FAT32/exFAT); others are skipped and listed.`,
-    }[m];
-    $('cList').innerHTML = paths.slice(0, 12).map(p => `<li>${esc(p)}</li>`).join('') +
-      (paths.length > 12 ? `<li>…and ${(paths.length - 12).toLocaleString()} more</li>` : '');
-    $('cOk').textContent = MODES[m].ok;
-    $('confirm').showModal();
-  });
-  $('cCancel').addEventListener('click', () => $('confirm').close());
-  $('cOk').addEventListener('click', async () => {
-    $('confirm').close();
-    const m = mode(), move = m === 'move';
+    const dupsDir = settings ? settings.dups_dir : 'the dups folder';
+    const yes = await confirmBox({
+      title: { delete: `Permanently delete ${n} file(s)?`, move: `Move ${n} file(s) to the dups folder?`,
+               link: `Replace ${n} file(s) with hard links?` }[m],
+      body: {
+        delete: `This frees ${fmtSize(s.bytes)}. Deleted files do <b>not</b> go to the Recycle Bin / Trash and cannot be recovered.`,
+        move:   `They'll be moved to <code>${esc(dupsDir)}</code> with their source folder added to the name (${fmtSize(s.bytes)}).
+                 You can undo this later from the History tab.`,
+        link:   `Each file stays at its path but becomes a hard link to a kept copy in its set, freeing ${fmtSize(s.bytes)}.
+                 Afterwards the paths share one copy of the data: <b>editing any of them changes all of them</b>.
+                 Files must be on the same drive as the kept copy (NTFS, ext4, APFS, ZFS… — not FAT32/exFAT); others are skipped and listed.
+                 You can undo this later from the History tab.`,
+      }[m],
+      list: paths, ok: MODES[m].ok,
+    });
+    if (!yes) return;
     $('applyBtn').disabled = true;
     try {
-      const r = await api('POST', '/api/apply', { paths: [...marked], mode: m });
+      const r = await api('POST', '/api/apply', { paths, mode: m });
       const ok = r.results.filter(x => x.ok), bad = r.results.filter(x => !x.ok);
+      const okSet = new Set(ok.map(x => x.path));
       data.groups = r.groups;
       const still = new Set(r.groups.flatMap(g => g.files.map(f => f.path)));
-      marked = new Set([...marked].filter(p => still.has(p) && !ok.some(x => x.path === p)));
+      marked = new Set([...marked].filter(p => still.has(p) && !okSet.has(p)));
       let html = `${MODES[m].done} ${ok.length.toLocaleString()} file(s), freeing ${fmtSize(r.freed)}.`;
-      if (move && ok.length) html += ` Files are in <code>${esc(r.dups_dir)}</code>.`;
+      if (m === 'move' && ok.length) html += ` Files are in <code>${esc(r.dups_dir)}</code>.`;
+      if (m !== 'delete' && ok.length) html += ` Saved as history entry #${r.history_id} — undo it from the History tab.`;
       if (bad.length) html += `<details open><summary>${bad.length} failed</summary><pre>${esc(bad.map(x => `${x.path}  —  ${x.error}`).join('\n'))}</pre></details>`;
       message(bad.length ? 'warn' : 'ok', html);
       render();
+      refreshHistCount();
     } catch (err) {
       message('err', esc(err.message));
       updateSelection();
     }
   });
 
+  // ------------------------------------------------------------ history
+  const STATUS_PILL = {
+    moved: ['Moved', 'info'], linked: ['Linked', 'info'], deleted: ['Deleted', 'del'],
+    failed: ['Failed', 'warn'], restored: ['Restored', 'keep'], separated: ['Unlinked', 'keep'],
+    missing: ['Missing', 'warn'],
+  };
+  const ACTION_PILL = {
+    scan: ['Scan', 'plain'], move: ['Move', 'info'], link: ['Link', 'info'],
+    delete: ['Delete', 'del'], restore: ['Restore', 'keep'],
+  };
+  const pill = ([t, c]) => `<span class="pill ${c}">${esc(t)}</span>`;
+
+  function describe(r) {
+    const s = r.summary || {};
+    if (r.action === 'scan') {
+      if (!s.sets) return `No duplicates in ${(s.files_scanned || 0).toLocaleString()} files`;
+      return `${plural(s.sets, 'set')}, ${plural(s.duplicate_files, 'extra copy').replace('copys', 'copies')} · ${fmtSize(s.reclaimable)}`;
+    }
+    if (r.action === 'restore') {
+      const p = [];
+      if (s.restored) p.push(`${s.restored} moved back`);
+      if (s.separated) p.push(`${s.separated} unlinked`);
+      if (s.failed) p.push(`${s.failed} failed`);
+      return p.join(', ') || 'Nothing to undo';
+    }
+    const verb = { move: 'moved', link: 'linked', delete: 'deleted' }[r.action] || r.action;
+    const p = [`${(r.n_done + r.n_undone).toLocaleString()} ${verb}`];
+    if (r.n_undone) p.push(`${r.n_undone} undone`);
+    if (r.n_failed) p.push(`${r.n_failed} failed`);
+    let html = esc(p.join(', '));
+    if (r.n_restorable) html += ` <span class="pill keep">${r.n_restorable} restorable</span>`;
+    return html;
+  }
+
+  async function refreshHistCount() {
+    try {
+      const h = await api('GET', '/api/history');
+      runs = h.runs;
+      $('histCount').textContent = runs.length ? `(${runs.length})` : '';
+      if (!$('tab-history').hidden) renderHistory(h.path);
+    } catch (_) {}
+  }
+
+  async function loadHistory() {
+    try {
+      const h = await api('GET', '/api/history');
+      runs = h.runs;
+      $('histCount').textContent = runs.length ? `(${runs.length})` : '';
+      renderHistory(h.path);
+    } catch (err) { note('histMsg', 'err', esc(err.message)); }
+  }
+
+  function renderHistory(path) {
+    const ids = new Set(runs.map(r => r.id));
+    hSel = new Set([...hSel].filter(i => ids.has(i)));
+    if (path) $('histPath').innerHTML = `History is saved in <code>${esc(path)}</code> and includes command-line runs.`;
+    if (!runs.length) {
+      $('histBody').innerHTML = `<tr><td colspan="7" class="empty">No history yet. Scans and actions from here and from <code>dedup.py</code> show up here.</td></tr>`;
+      updateHistSel();
+      return;
+    }
+    $('histBody').innerHTML = runs.map(r => {
+      const roots = r.roots || [];
+      const where = roots.map(esc).join('<br>');
+      const open = hOpen.has(r.id);
+      let detail = '';
+      if (open) detail = `<tr class="detail" data-for="${r.id}"><td colspan="7">${detailHTML(r.id)}</td></tr>`;
+      return `<tr class="run${hSel.has(r.id) ? ' sel' : ''}" data-id="${r.id}">
+          <td class="chk"><input type="checkbox" ${hSel.has(r.id) ? 'checked' : ''} aria-label="Select #${r.id}"></td>
+          <td class="num">${r.id}</td>
+          <td class="when hide-sm">${esc(fmtIso(r.started))}</td>
+          <td class="hide-sm">${esc(r.source)}</td>
+          <td>${pill(ACTION_PILL[r.action] || [r.action, 'plain'])}</td>
+          <td class="where">${where}${r.note ? `<span class="note">${esc(r.note)}</span>` : ''}</td>
+          <td class="res">${describe(r)}${r.n_items ? `<span class="twist">${open ? '▾ hide files' : '▸ files'}</span>` : ''}</td>
+        </tr>${detail}`;
+    }).join('');
+    updateHistSel();
+  }
+
+  function detailHTML(id) {
+    const d = hDetail.get(id);
+    if (!d) return '<span class="hint">Loading…</span>';
+    if (!d.items.length) return '<span class="hint">No files recorded for this entry.</span>';
+    return `<ul>${d.items.map(i => {
+      let extra = '';
+      if (i.dest && (i.action === 'move' || i.action === 'restore')) extra = `in dups folder as ${i.dest}`;
+      else if (i.dest && i.action === 'link') extra = `linked to ${i.dest}`;
+      if (i.error) extra += (extra ? ' · ' : '') + i.error;
+      return `<li>${pill(STATUS_PILL[i.status] || [i.status, 'plain'])}
+        <span class="p">${esc(i.path)}${extra ? `<small>${esc(extra)}</small>` : ''}</span></li>`;
+    }).join('')}</ul>`;
+  }
+
+  $('histBody').addEventListener('click', async (e) => {
+    const tr = e.target.closest('tr.run');
+    if (!tr) return;
+    const id = +tr.dataset.id;
+    if (e.target.type === 'checkbox') {
+      e.target.checked ? hSel.add(id) : hSel.delete(id);
+      tr.classList.toggle('sel', e.target.checked);
+      updateHistSel();
+      return;
+    }
+    const r = runs.find(x => x.id === id);
+    if (!r || !r.n_items) {   // nothing to expand: clicking the row toggles selection
+      hSel.has(id) ? hSel.delete(id) : hSel.add(id);
+      renderHistory();
+      return;
+    }
+    if (hOpen.has(id)) { hOpen.delete(id); renderHistory(); return; }
+    hOpen.add(id);
+    renderHistory();
+    try { hDetail.set(id, await api('GET', `/api/history/${id}`)); }
+    catch (err) { hDetail.set(id, { items: [], error: err.message }); }
+    renderHistory();
+  });
+
+  $('hAll').addEventListener('change', (e) => {
+    hSel = e.target.checked ? new Set(runs.map(r => r.id)) : new Set();
+    renderHistory();
+  });
+
+  function updateHistSel() {
+    const sel = runs.filter(r => hSel.has(r.id));
+    const restorable = sel.reduce((n, r) => n + r.n_restorable, 0);
+    $('hAll').checked = runs.length > 0 && sel.length === runs.length;
+    $('hAll').indeterminate = sel.length > 0 && sel.length < runs.length;
+    $('histSel').textContent = sel.length
+      ? `${plural(sel.length, 'entry').replace('entrys', 'entries')} selected` + (restorable ? ` · ${restorable} file(s) can be restored` : '')
+      : 'Select entries to recheck or undo them.';
+    $('hRecheck').disabled = !sel.length || !$('cancelBtn').hidden;
+    $('hRestore').disabled = !restorable;
+    $('hForget').disabled = !sel.length;
+  }
+
+  $('hRecheck').addEventListener('click', async () => {
+    note('histMsg', null);
+    try {
+      const r = await api('POST', '/api/history/recheck', { ids: [...hSel], min_size: +$('minSize').value });
+      showTab('scan');
+      message(r.missing.length ? 'warn' : null,
+        r.missing.length ? `Skipped folders that no longer exist:<pre>${esc(r.missing.join('\n'))}</pre>` : '');
+      afterScanStarted(r.roots);
+    } catch (err) { note('histMsg', 'err', esc(err.message)); }
+  });
+
+  $('hRestore').addEventListener('click', async () => {
+    const sel = runs.filter(r => hSel.has(r.id));
+    const restorable = sel.reduce((n, r) => n + r.n_restorable, 0);
+    const deleted = sel.reduce((n, r) => n + r.n_deleted, 0);
+    const yes = await confirmBox({
+      title: `Restore ${plural(restorable, 'file')}?`,
+      body: `Files moved to the dups folder go back to where they came from. Hard-linked files become separate
+             copies again, with their original modified date and permissions (this uses disk space again).
+             ${deleted ? `<br><br><b>${plural(deleted, 'file')}</b> in these entries were permanently deleted and can't be restored.` : ''}`,
+      list: sel.map(r => `#${r.id}  ${r.action}  ${(r.roots || []).join(', ')}`),
+      ok: 'Restore', danger: false,
+    });
+    if (!yes) return;
+    try {
+      const r = await api('POST', '/api/history/restore', { ids: [...hSel] });
+      const parts = [];
+      if (r.restored) parts.push(`moved ${plural(r.restored, 'file')} back`);
+      if (r.separated) parts.push(`turned ${plural(r.separated, 'hard link')} back into separate files`);
+      let html = parts.length ? parts.join(' and ').replace(/^./, c => c.toUpperCase()) + '.' : 'Nothing was restored.';
+      if (r.problems.length) html += `<details open><summary>${r.problems.length} not restored</summary><pre>${esc(r.problems.join('\n'))}</pre></details>`;
+      note('histMsg', r.problems.length ? 'warn' : 'ok', html);
+      hSel.clear();
+      [...hDetail.keys()].forEach(k => hDetail.delete(k));
+      hOpen.clear();
+      loadHistory();
+    } catch (err) { note('histMsg', 'err', esc(err.message)); }
+  });
+
+  $('hForget').addEventListener('click', async () => {
+    const sel = runs.filter(r => hSel.has(r.id));
+    const restorable = sel.reduce((n, r) => n + r.n_restorable, 0);
+    const yes = await confirmBox({
+      title: `Remove ${plural(sel.length, 'entry').replace('entrys', 'entries')} from history?`,
+      body: `No files are touched.` + (restorable
+        ? ` <b>${plural(restorable, 'file')}</b> in these entries could still be restored — after removing them you'd have to put them back by hand.`
+        : ''),
+      list: sel.map(r => `#${r.id}  ${r.action}  ${(r.roots || []).join(', ')}`),
+      ok: 'Remove', danger: !!restorable,
+    });
+    if (!yes) return;
+    try {
+      const r = await api('POST', '/api/history/forget', { ids: [...hSel] });
+      note('histMsg', 'ok', `Removed ${plural(r.removed, 'entry').replace('entrys', 'entries')}.`);
+      hSel.clear();
+      loadHistory();
+    } catch (err) { note('histMsg', 'err', esc(err.message)); }
+  });
+
+  // ------------------------------------------------------------ settings
+  const S_FIELDS = ['dups_dir', 'keep', 'web_action', 'cli_action', 'min_size', 'exclude_dirs',
+                    'exclude_files', 'skip_hidden', 'write_report'];
+
+  function fillSettings(values) {
+    if (!settings) return;
+    const v = values || settings.values;
+    for (const k of S_FIELDS) {
+      const el = $(`s_${k}`);
+      if (el.type === 'checkbox') el.checked = !!v[k];
+      else if (Array.isArray(v[k])) el.value = v[k].join('\n');
+      else el.value = v[k];
+    }
+    $('s_dups_resolved').textContent = settings.dups_dir;
+    $('setPath').innerHTML = `Saved to <code>${esc(settings.path)}</code>${settings.exists ? '' : ' (will be created)'}`;
+  }
+
+  function readSettings() {
+    const out = {};
+    for (const k of S_FIELDS) {
+      const el = $(`s_${k}`);
+      if (el.type === 'checkbox') out[k] = el.checked;
+      else if (k === 'min_size') out[k] = parseInt(el.value, 10);
+      else if (k.startsWith('exclude_')) out[k] = el.value.split('\n').map(s => s.trim()).filter(Boolean);
+      else out[k] = el.value.trim();
+    }
+    if (!Number.isInteger(out.min_size) || out.min_size < 0) throw new Error('Minimum file size must be a whole number, 0 or more.');
+    if (!out.dups_dir) throw new Error('Choose a dups folder.');
+    return out;
+  }
+
+  function applySettingsToScan() {
+    $('actionMode').value = settings.values.web_action;
+    setMinSize(settings.values.min_size);
+    updateSelection();
+  }
+
+  $('setForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    note('setMsg', null);
+    let values;
+    try { values = readSettings(); } catch (err) { note('setMsg', 'err', esc(err.message)); return; }
+    const changed = {};
+    for (const k of S_FIELDS) if (JSON.stringify(values[k]) !== JSON.stringify(settings.values[k])) changed[k] = values[k];
+    if (!Object.keys(changed).length) { note('setMsg', 'ok', 'No changes to save.'); return; }
+    try {
+      settings = await api('POST', '/api/config', { values: changed });
+      fillSettings();
+      applySettingsToScan();
+      note('setMsg', 'ok', `Saved. Dups folder: <code>${esc(settings.dups_dir)}</code>. The command line uses these settings too.`);
+    } catch (err) { note('setMsg', 'err', esc(err.message)); }
+  });
+  $('setRevert').addEventListener('click', () => { fillSettings(); note('setMsg', null); });
+  $('setDefaults').addEventListener('click', () => {
+    fillSettings(Object.assign({}, settings.values, Object.fromEntries(S_FIELDS.map(k => [k, settings.defaults[k]]))));
+    note('setMsg', 'warn', 'Defaults filled in — press <b>Save settings</b> to keep them.');
+  });
+
   // ------------------------------------------------------------ start
-  try { const p = localStorage.getItem('dedup.path'); if (p) $('path').value = p; } catch (_) {}
-  try { const m = localStorage.getItem('dedup.mode'); if (MODES[m]) $('actionMode').value = m; } catch (_) {}
-  api('GET', '/api/status').then(s => {
-    if (s.state === 'running') { setScanning(true); poll(); }
-    else if (s.state === 'done' && s.has_result) loadResult();
-  }).catch(() => {});
+  let saved = [];
+  try { saved = JSON.parse(localStorage.getItem('dedup.paths') || '[]'); } catch (_) {}
+  setPaths(Array.isArray(saved) ? saved : []);
+
+  (async () => {
+    try {
+      settings = await api('GET', '/api/config');
+      applySettingsToScan();
+      if (settings.warnings.length) message('warn', esc(settings.warnings.join('\n')));
+    } catch (err) { message('err', esc(err.message)); }
+    refreshHistCount();
+    try {
+      const s = await api('GET', '/api/status');
+      if (s.state === 'running') { setPaths(s.roots); setScanning(true); poll(); }
+      else if (s.state === 'done' && s.has_result) { setPaths(s.roots); await loadResult(); }
+    } catch (_) {}
+    let tab = 'scan';
+    try { tab = localStorage.getItem('dedup.tab') || 'scan'; } catch (_) {}
+    showTab(['scan', 'history', 'settings'].includes(tab) ? tab : 'scan');
+  })();
 })();
 </script>
 </body>

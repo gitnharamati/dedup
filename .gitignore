@@ -16,3 +16,8 @@ Thumbs.db
 desktop.ini
 .vscode/
 .idea/
+
+# Your own settings and history (machine-specific)
+config.json
+history.db
+history.db-journal
